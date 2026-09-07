@@ -2,7 +2,7 @@
 import httpx
 import json
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://127.0.0.1:8001"
 
 def test_live_server_full_flow():
     with httpx.Client(base_url=BASE_URL, timeout=10.0) as client:

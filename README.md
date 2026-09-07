@@ -1,9 +1,44 @@
 # SmartSplit: Split the Bill From a Photograph
 > **Production-ready AI web application that parses receipt photos, extracts line items & taxes using Google Gemini Vision, provides human-in-the-loop verification, and calculates mathematically sound proportional bill splits with penny-perfect reconciliation.**
 
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141+-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.14-blue.svg?style=flat&logo=python)](https://python.org)
+[![Gemini Vision](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-8E75B2.svg?style=flat&logo=google)](https://ai.google.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC.svg?style=flat&logo=tailwind-css)](https://tailwindcss.com)
+[![Pytest](https://img.shields.io/badge/Tests-12%2F12%20Passing-success.svg?style=flat&logo=pytest)](https://pytest.org)
+[![Reconciliation](https://img.shields.io/badge/Hare--Niemeyer-Penny--Perfect-emerald.svg?style=flat)](#c-penny-perfect-reconciliation-hare-niemeyer-algorithm)
+
 ---
 
-## 1. Mathematical Foundation & Fairness Proof
+## 1. Application Overview & Visual Workflow
+
+SmartSplit AI bridges multimodal computer vision and precision financial mathematics to eliminate the friction and unfairness of splitting dining and shopping receipts.
+
+### Visual Workflow
+
+The user journey transitions seamlessly from image upload through interactive review to high-resolution export:
+
+<div align="center">
+  <img src="./test_bills/Read_Images/bill.png" alt="Sample Receipt Input and Viewer" width="85%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px;" />
+  <p><em>Figure 1: Receipt Photo Input & Interactive Canvas Viewer (Zoom, Pan, Rotate)</em></p>
+</div>
+
+```
++---------------------+     +--------------------------+     +------------------------+
+| 1. Receipt Upload   | --> | 2. Gemini Multimodal OCR | --> | 3. Human Review Studio |
+| (Drag/Drop/Presets) |     | (Line Items & Taxes JSON)|     | (Confidence Warnings)  |
++---------------------+     +--------------------------+     +------------------------+
+                                                                         |
+                                                                         v
++---------------------+     +--------------------------+     +------------------------+
+| 6. Image & Text     | <-- | 5. Penny Reconciliation  | <-- | 4. Person Assignment   |
+| (PNG Download/Copy) |     | (Hare-Niemeyer Algorithm)|     | (Single / Multi / All) |
++---------------------+     +--------------------------+     +------------------------+
+```
+
+---
+
+## 2. Mathematical Foundation & Fairness Proof
 
 Splitting restaurant and grocery bills equally across participants introduces substantial financial unfairness whenever consumption is asymmetric.
 
@@ -37,93 +72,52 @@ SmartSplit AI employs the **Largest Remainder Method (Hare-Niemeyer)**:
 
 ---
 
-## 2. Architecture & Tech Stack
-
-```
-                                  +---------------------------+
-                                  |   Receipt Photo Upload    |
-                                  |  (JPG, PNG, WEBP, Camera) |
-                                  +-------------+-------------+
-                                                |
-                                                v
-                                  +---------------------------+
-                                  |   FastAPI Backend (Py)    |
-                                  |     /api/extract          |
-                                  +-------------+-------------+
-                                                |
-                       +------------------------+------------------------+
-                       |                                                 |
-                       v                                                 v
-        +-----------------------------+                   +-----------------------------+
-        |  Gemini 2.5 Flash Vision    |                   | 12 Edge Case Presets Engine |
-        |  - Structured JSON Output   |                   | - Built-in offline testing  |
-        |  - Field Confidence Scores  |                   | - Instant 1-click loading   |
-        +--------------+--------------+                   +--------------+--------------+
-                       |                                                 |
-                       +------------------------+------------------------+
-                                                |
-                                                v
-                                  +---------------------------+
-                                  |   Human-in-the-Loop UI    |
-                                  | - Confidence Badges (<0.8)|
-                                  | - Mismatch Alert Banner   |
-                                  | - Inline Field Editing    |
-                                  | - Dynamic Participant Add |
-                                  +-------------+-------------+
-                                                |
-                                                v
-                                  +---------------------------+
-                                  |   Proportional Math &     |
-                                  |   Cent Reconciliation     |
-                                  |      /api/split           |
-                                  +-------------+-------------+
-                                                |
-                                                v
-                                  +---------------------------+
-                                  |  Balanced Summary Output  |
-                                  | - Exact Cent Verified     |
-                                  | - WhatsApp/Slack Copy     |
-                                  | - JSON Export             |
-                                  +---------------------------+
-```
-
-### Backend
-- **Python 3.14 / 3.11+**
-- **FastAPI**: Asynchronous high-performance REST API with CORS support.
-- **Pydantic v2**: Strict schema validation, confidence tracking, and data coercion.
-- **Google GenAI SDK (`google-genai`)**: Multimodal Vision API (`gemini-2.5-flash`).
-- **Pillow (PIL)**: Image decoding, synthetic edge case generation, and texture synthesis.
-
-### Frontend
-- **Modern Single-Page Application (HTML5 / Vanilla JS)**: No bloated node build tools required.
-- **Tailwind CSS (CDN)**: Sleek, responsive dark-mode slate & indigo glassmorphism.
-- **Lucide Icons**: Crisp vector UI iconography.
-- **Interactive Canvas**: Drag-and-drop, zoom in/out, rotate 90°, and smooth pan navigation.
-
----
-
 ## 3. Human-in-the-Loop Review System
 
-Computer vision on real-world receipts faces challenges such as crumpling, fading, and tilted camera shots. SmartSplit AI builds confidence through transparency:
+Computer vision on real-world receipts faces challenges such as crumpling, fading, and tilted camera shots. SmartSplit AI builds user trust through transparency and interactive correction:
 
-1. **Confidence Scores per Field**:
-   Each extracted field (`subtotal`, `taxes`, `line_items`, `grand_total`) carries an AI confidence score ($0.0$ to $1.0$).
-2. **Soft Yellow Warning Highlights**:
-   Any field with confidence $< 0.80$ is visually highlighted with a warning badge and pulse animation, prompting the human reviewer to double check the photo.
-3. **Printed Arithmetic Mismatch Banner**:
-   If the register's printed line items sum does not match the printed subtotal, a prominent alert banner triggers:
-   $$\left| \sum \text{Items} - \text{Subtotal} \right| > 0.05 \implies \text{math\_mismatch\_warning: true}$$
-   The user can click **"Sync Subtotal with Items Sum"** for 1-click reconciliation or edit individual line items directly.
-4. **Interactive Participant Assignment**:
-   - Color-coded chips for each person (e.g. Rahul, Priya, Amit).
-   - Assign items to **One Person**, **Multiple People** (equal split of item price), or **Everyone**.
-   - Real-time display of per-person cost ($15.00 / 3 = \$5.00/\text{person}$).
+### A. OCR Extraction Studio
+Each extracted field carries an individual AI confidence score ($0.0$ to $1.0$). Fields with confidence $< 0.80$ are highlighted in soft yellow/amber warning states with pulse animations, prompting human inspection.
+
+<div align="center">
+  <img src="./test_bills/Read_Images/item.png" alt="OCR Extraction Studio" width="90%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 16px 0;" />
+  <p><em>Figure 2: Human-in-the-Loop Line Item Editor with Confidence Indicators & Mismatch Alerts</em></p>
+</div>
+
+- **Confidence Scores per Field**: Item descriptions, quantities, prices, subtotal, and taxes each report extraction certainty.
+- **Printed Math Discrepancy Detection**: If printed items sum does not equal printed subtotal:
+  $$\left| \sum \text{Items} - \text{Subtotal} \right| > 0.05 \implies \text{math\_mismatch\_warning: true}$$
+  A 1-click **"Sync Subtotal with Items Sum"** button instantly reconciles the subtotal.
+
+### B. Interactive Participant Assignment
+Add participants dynamically with distinct color-coded chips (e.g. Rahul, Priya, Amit, Kavita). Assign items to **One Person**, **Multiple People** (cost split equally), or **Everyone** with one click.
+
+<div align="center">
+  <img src="./test_bills/Read_Images/paticipant.png" alt="Interactive Participant Assignment" width="90%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 16px 0;" />
+  <p><em>Figure 3: Participant Manager & Interactive Item Assignment Matrix</em></p>
+</div>
+
+### C. Proportional Split Breakdown & Image Export
+The output summary shows an itemized breakdown for each person with proportional fee distribution, real-time penny verification, and a high-resolution PNG image download.
+
+<div align="center">
+  <img src="./test_bills/Read_Images/split background.png" alt="Proportional Split Breakdown" width="90%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 16px 0;" />
+  <p><em>Figure 4: Proportional Split Breakdown with Penny-Perfect Verification & Image Export</em></p>
+</div>
+
+- **Download Image**: Captures the entire breakdown card via `html2canvas` in 2x DPI and automatically triggers download of `bill_split_breakdown.png`.
+- **Copy Text**: Formats a WhatsApp/Slack message summary ready to share in group chats.
 
 ---
 
 ## 4. The 12 Edge Cases Suite
 
-The `test_bills/` directory contains synthetic receipt images and automated tests verifying 12 real-world edge cases:
+The application includes an edge-case modal gallery and test generator supporting 12 real-world receipt challenges:
+
+<div align="center">
+  <img src="./test_bills/Read_Images/test case.png" alt="12 Edge Cases Test Suite Gallery" width="90%" style="border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 16px 0;" />
+  <p><em>Figure 5: 12 Edge Cases Gallery with 1-Click Interactive Presets</em></p>
+</div>
 
 | # | Edge Case ID | Name | Description & Verification Goal |
 |---|---|---|---|
@@ -154,15 +148,15 @@ Create or edit `.env` in the root directory:
 ```bash
 GEMINI_API_KEY=AIzaSy...your_gemini_api_key_here
 ```
-*(Note: If you do not have an API key right now, the application runs seamlessly out-of-the-box using the 12 built-in edge case presets, or you can paste your key in the web UI settings modal!)*
+*(Note: If you do not have an API key, the application runs seamlessly using the 12 built-in edge case presets, or you can paste your key in the web UI settings modal at runtime!)*
 
 ### Step 3: Run the Application Server
 ```powershell
-python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn backend.app:app --host 127.0.0.1 --port 8001 --reload
 ```
 Open your browser and navigate to:
 ```
-http://127.0.0.1:8000
+http://127.0.0.1:8001
 ```
 
 ---
@@ -175,7 +169,7 @@ Run the complete test suite covering the proportional math engine, Hare-Niemeyer
 python -m pytest test_bills/ tests/ -v
 ```
 
-All 11 tests will execute and validate:
+All 12 automated tests will execute and validate:
 - Zero-penny loss invariants.
 - Proportional fairness checks.
 - Discrepancy detection on bad printed receipts.

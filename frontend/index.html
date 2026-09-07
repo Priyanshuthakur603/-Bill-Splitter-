@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartSplit AI | Multimodal Receipt & Proportional Bill Splitter</title>
-  <meta name="description" content="Parse receipt photos, extract line items with Gemini Vision, review confidence, and compute proportional bill splits mathematically.">
-  
+  <meta name="description"
+    content="Parse receipt photos, extract line items with Gemini Vision, review confidence, and compute proportional bill splits mathematically.">
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -27,23 +29,29 @@
       }
     }
   </script>
-  
+
   <!-- Google Fonts & Custom CSS -->
   <link rel="stylesheet" href="/static/styles.css">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas CDN for image download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+<body
+  class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
   <!-- Top Navigation Bar -->
   <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+        <div
+          class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
           <i data-lucide="receipt" class="w-5 h-5 text-white"></i>
         </div>
         <div>
-          <h1 class="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+          <h1
+            class="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
             SmartSplit AI
           </h1>
           <p class="text-xs text-slate-400 font-medium hidden sm:block">Proportional Multimodal Bill Splitting</p>
@@ -52,19 +60,23 @@
 
       <div class="flex items-center space-x-3">
         <!-- API Status Indicator -->
-        <div id="gemini-status-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/90 border border-slate-700 text-slate-300">
+        <div id="gemini-status-badge"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/90 border border-slate-700 text-slate-300">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="status-dot"></span>
           <span id="status-text">Checking Gemini...</span>
         </div>
 
         <!-- Sample Edge Cases Quick Button -->
-        <button id="btn-samples-modal" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition flex items-center space-x-1.5">
+        <button id="btn-samples-modal"
+          class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition flex items-center space-x-1.5">
           <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
           <span>12 Edge Cases</span>
         </button>
 
         <!-- Settings / API Key Button -->
-        <button id="btn-open-settings" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Configure Gemini API Key">
+        <button id="btn-open-settings"
+          class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+          title="Configure Gemini API Key">
           <i data-lucide="key" class="w-4 h-4"></i>
         </button>
       </div>
@@ -76,7 +88,7 @@
 
     <!-- LEFT COLUMN: Receipt Canvas & Image Controls (5 cols on lg) -->
     <section class="lg:col-span-5 flex flex-col space-y-4">
-      
+
       <!-- Upload & Preset Card -->
       <div class="glass-panel rounded-2xl p-4 sm:p-5">
         <div class="flex items-center justify-between mb-3">
@@ -88,10 +100,12 @@
         </div>
 
         <!-- Drag and Drop Dropzone -->
-        <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/40 hover:bg-indigo-950/20 group relative">
+        <div id="dropzone"
+          class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/40 hover:bg-indigo-950/20 group relative">
           <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" class="hidden">
           <div class="flex flex-col items-center justify-center space-y-2">
-            <div class="w-12 h-12 rounded-full bg-slate-800 group-hover:bg-indigo-600/20 group-hover:text-indigo-400 text-slate-400 flex items-center justify-center transition">
+            <div
+              class="w-12 h-12 rounded-full bg-slate-800 group-hover:bg-indigo-600/20 group-hover:text-indigo-400 text-slate-400 flex items-center justify-center transition">
               <i data-lucide="upload-cloud" class="w-6 h-6"></i>
             </div>
             <p class="text-sm font-medium text-slate-200">
@@ -104,10 +118,12 @@
         <!-- Quick Sample Selector Dropdown -->
         <div class="mt-3 flex items-center space-x-2">
           <label for="sample-select" class="text-xs text-slate-400 whitespace-nowrap">Load Preset:</label>
-          <select id="sample-select" class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-slate-200 flex-1 truncate">
+          <select id="sample-select"
+            class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-slate-200 flex-1 truncate">
             <option value="">-- Choose Edge Case Sample --</option>
           </select>
-          <button id="btn-load-sample" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition">
+          <button id="btn-load-sample"
+            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition">
             Load
           </button>
         </div>
@@ -118,16 +134,21 @@
         <!-- Canvas Toolbar -->
         <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 text-slate-400">
           <div class="flex items-center space-x-1">
-            <button id="btn-zoom-in" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Zoom In">
+            <button id="btn-zoom-in" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition"
+              title="Zoom In">
               <i data-lucide="zoom-in" class="w-4 h-4"></i>
             </button>
-            <button id="btn-zoom-out" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Zoom Out">
+            <button id="btn-zoom-out" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition"
+              title="Zoom Out">
               <i data-lucide="zoom-out" class="w-4 h-4"></i>
             </button>
-            <button id="btn-rotate" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Rotate 90°">
+            <button id="btn-rotate" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition"
+              title="Rotate 90°">
               <i data-lucide="rotate-cw" class="w-4 h-4"></i>
             </button>
-            <button id="btn-zoom-reset" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition text-xs font-mono" title="Reset">
+            <button id="btn-zoom-reset"
+              class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition text-xs font-mono"
+              title="Reset">
               100%
             </button>
           </div>
@@ -138,7 +159,8 @@
         </div>
 
         <!-- Image Container with Drag & Zoom -->
-        <div id="image-viewport" class="flex-1 relative overflow-hidden bg-slate-950/60 rounded-xl mt-3 flex items-center justify-center image-canvas-wrapper min-h-[360px]">
+        <div id="image-viewport"
+          class="flex-1 relative overflow-hidden bg-slate-950/60 rounded-xl mt-3 flex items-center justify-center image-canvas-wrapper min-h-[360px]">
           <!-- Placeholder State -->
           <div id="viewer-placeholder" class="text-center p-6 text-slate-500">
             <i data-lucide="image" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
@@ -147,10 +169,12 @@
           </div>
 
           <!-- Active Receipt Image -->
-          <img id="receipt-preview-img" src="" alt="Receipt Preview" class="hidden max-w-none transition-transform duration-75 origin-center shadow-2xl rounded">
+          <img id="receipt-preview-img" src="" alt="Receipt Preview"
+            class="hidden max-w-none transition-transform duration-75 origin-center shadow-2xl rounded">
 
           <!-- Processing Overlay Spinner -->
-          <div id="extraction-spinner" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex flex-col items-center justify-center z-20">
+          <div id="extraction-spinner"
+            class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex flex-col items-center justify-center z-20">
             <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
             <p class="mt-3 text-sm font-semibold text-indigo-300">Gemini Vision is parsing receipt...</p>
             <p class="text-xs text-slate-400 mt-1">Extracting line items, taxes & confidence scores</p>
@@ -164,20 +188,24 @@
     <section class="lg:col-span-7 flex flex-col space-y-6">
 
       <!-- Mismatch Diagnostic Banner (Visible when arithmetic discrepancy is detected) -->
-      <div id="mismatch-banner" class="hidden p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm flex items-start space-x-3 transition-all duration-300">
+      <div id="mismatch-banner"
+        class="hidden p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm flex items-start space-x-3 transition-all duration-300">
         <div class="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 flex-shrink-0">
           <i data-lucide="alert-triangle" class="w-5 h-5"></i>
         </div>
         <div class="flex-1">
           <div class="flex items-center justify-between">
             <h4 class="font-bold text-amber-300">Printed Math Mismatch Flagged!</h4>
-            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300">Edge Case Alert</span>
+            <span
+              class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300">Edge
+              Case Alert</span>
           </div>
           <p id="mismatch-explanation" class="mt-1 text-amber-200/90 leading-relaxed">
             The sum of extracted line items does not equal the printed subtotal.
           </p>
           <div class="mt-2.5 flex items-center space-x-2">
-            <button id="btn-fix-subtotal" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition">
+            <button id="btn-fix-subtotal"
+              class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition">
               Sync Subtotal with Items Sum
             </button>
             <span class="text-xs text-amber-400/80">or edit item prices below manually.</span>
@@ -187,24 +215,30 @@
 
       <!-- Human Review & Line Item Studio -->
       <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5">
-        
+
         <!-- Header: Merchant & Overall Confidence -->
         <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
           <div class="flex-1 min-w-[200px]">
-            <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Merchant / Restaurant</label>
+            <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Merchant /
+              Restaurant</label>
             <div class="relative">
-              <input type="text" id="merchant-input" value="Sample Bistro" class="glass-input rounded-lg px-3 py-1.5 text-base font-bold w-full text-white font-display">
+              <input type="text" id="merchant-input" value="Sample Bistro"
+                class="glass-input rounded-lg px-3 py-1.5 text-base font-bold w-full text-white font-display">
             </div>
           </div>
 
           <div class="flex items-center space-x-3">
             <div>
-              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Currency</label>
-              <input type="text" id="currency-input" value="$" class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-center w-14 font-mono font-bold">
+              <label
+                class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Currency</label>
+              <input type="text" id="currency-input" value="$"
+                class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-center w-14 font-mono font-bold">
             </div>
             <div>
-              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">OCR Confidence</label>
-              <div id="overall-confidence-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
+              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">OCR
+                Confidence</label>
+              <div id="overall-confidence-badge"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
                 <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
                 <span id="confidence-pct">94% High</span>
               </div>
@@ -218,9 +252,11 @@
             <div class="flex items-center space-x-2">
               <i data-lucide="list-ordered" class="w-4 h-4 text-indigo-400"></i>
               <h3 class="text-xs uppercase font-bold tracking-wider text-slate-300">Extracted Line Items</h3>
-              <span id="items-count-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-mono">3 Items</span>
+              <span id="items-count-badge"
+                class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-mono">3 Items</span>
             </div>
-            <button id="btn-add-item" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center space-x-1 shadow-sm">
+            <button id="btn-add-item"
+              class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center space-x-1 shadow-sm">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               <span>Add Item</span>
             </button>
@@ -251,7 +287,8 @@
             <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Subtotal</span>
             <div class="flex items-center space-x-1">
               <span class="text-xs text-slate-400 currency-sym">$</span>
-              <input type="number" step="0.01" id="subtotal-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+              <input type="number" step="0.01" id="subtotal-input" value="0.00"
+                class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
             </div>
           </div>
 
@@ -259,7 +296,8 @@
             <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Tax (Sales/VAT)</span>
             <div class="flex items-center space-x-1">
               <span class="text-xs text-slate-400 currency-sym">$</span>
-              <input type="number" step="0.01" id="tax-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+              <input type="number" step="0.01" id="tax-input" value="0.00"
+                class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
             </div>
           </div>
 
@@ -267,7 +305,8 @@
             <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Service Fee/Tip</span>
             <div class="flex items-center space-x-1">
               <span class="text-xs text-slate-400 currency-sym">$</span>
-              <input type="number" step="0.01" id="service-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+              <input type="number" step="0.01" id="service-input" value="0.00"
+                class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
             </div>
           </div>
 
@@ -275,7 +314,8 @@
             <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Discounts</span>
             <div class="flex items-center space-x-1">
               <span class="text-xs text-slate-400 currency-sym">$</span>
-              <input type="number" step="0.01" id="discount-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold text-emerald-400">
+              <input type="number" step="0.01" id="discount-input" value="0.00"
+                class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold text-emerald-400">
             </div>
           </div>
         </div>
@@ -288,14 +328,15 @@
           </div>
           <div class="flex items-center space-x-1">
             <span class="text-sm font-bold text-slate-400 currency-sym">$</span>
-            <input type="number" step="0.01" id="grand-total-input" value="0.00" class="glass-input rounded-md px-2.5 py-1 text-sm font-bold w-28 font-mono text-right text-indigo-300">
+            <input type="number" step="0.01" id="grand-total-input" value="0.00"
+              class="glass-input rounded-md px-2.5 py-1 text-sm font-bold w-28 font-mono text-right text-indigo-300">
           </div>
         </div>
       </div>
 
       <!-- Participant & Item Assignment Studio -->
       <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5">
-        
+
         <!-- Participant Manager Header -->
         <div>
           <div class="flex items-center justify-between mb-3">
@@ -304,10 +345,12 @@
               <h3 class="text-xs uppercase font-bold tracking-wider text-slate-300">Participants</h3>
             </div>
             <div class="flex items-center space-x-2">
-              <button id="btn-assign-all-everyone" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+              <button id="btn-assign-all-everyone"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
                 Assign All to Everyone
               </button>
-              <button id="btn-clear-assignments" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
+              <button id="btn-clear-assignments"
+                class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
                 Clear
               </button>
             </div>
@@ -321,8 +364,10 @@
 
             <!-- Inline Add Participant Form -->
             <div class="flex items-center space-x-1">
-              <input type="text" id="new-participant-input" placeholder="+ Add Name" class="glass-input rounded-lg px-2.5 py-1 text-xs w-28 text-slate-200">
-              <button id="btn-add-participant" class="p-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">
+              <input type="text" id="new-participant-input" placeholder="+ Add Name"
+                class="glass-input rounded-lg px-2.5 py-1 text-xs w-28 text-slate-200">
+              <button id="btn-add-participant"
+                class="p-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -340,25 +385,28 @@
       </div>
 
       <!-- Final Proportional Split Output & Verification -->
-      <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5 glow-badge">
-        
+      <div id="split-breakdown-card" class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5 glow-badge">
+
         <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
           <div>
             <h3 class="text-sm font-bold uppercase tracking-wider text-white flex items-center space-x-2">
               <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
               <span>Proportional Split Breakdown</span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">Taxes & fees distributed strictly proportional to raw food subtotal.</p>
+            <p class="text-xs text-slate-400 mt-0.5">Taxes & fees distributed strictly proportional to raw food
+              subtotal.</p>
           </div>
 
           <div class="flex items-center space-x-2">
-            <button id="btn-copy-summary" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+            <button id="btn-copy-summary"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
               <i data-lucide="copy" class="w-3.5 h-3.5"></i>
               <span>Copy Text</span>
             </button>
-            <button id="btn-export-json" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i>
-              <span>Export JSON</span>
+            <button id="btn-download-image"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500/50 transition flex items-center space-x-1.5 shadow-sm">
+              <i data-lucide="image-down" class="w-3.5 h-3.5"></i>
+              <span>Download Image</span>
             </button>
           </div>
         </div>
@@ -382,14 +430,18 @@
         </div>
 
         <!-- Cent-Balancing Mathematical Verification Card -->
-        <div id="verification-card" class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div id="verification-card"
+          class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
           <div class="flex items-center space-x-2.5">
-            <div id="verification-icon" class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <div id="verification-icon"
+              class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <i data-lucide="check" class="w-3.5 h-3.5"></i>
             </div>
             <div>
-              <span id="verification-title" class="font-bold text-slate-200">Penny-Perfect Reconciliation Verified</span>
-              <p id="verification-subtitle" class="text-slate-400 text-[11px]">Sum of individual shares exactly equals receipt grand total.</p>
+              <span id="verification-title" class="font-bold text-slate-200">Penny-Perfect Reconciliation
+                Verified</span>
+              <p id="verification-subtitle" class="text-slate-400 text-[11px]">Sum of individual shares exactly equals
+                receipt grand total.</p>
             </div>
           </div>
 
@@ -412,7 +464,8 @@
   </main>
 
   <!-- Settings Modal for Gemini API Key -->
-  <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="settings-modal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-700">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 class="font-bold text-base text-white flex items-center space-x-2">
@@ -425,17 +478,20 @@
       </div>
 
       <p class="text-xs text-slate-300 leading-relaxed">
-        The backend automatically loads your key from <code class="text-indigo-300">.env</code>. Alternatively, you can enter your API key here to test in this browser session.
+        The backend automatically loads your key from <code class="text-indigo-300">.env</code>. Alternatively, you can
+        enter your API key here to test in this browser session.
       </p>
 
       <div>
         <label class="block text-xs font-semibold text-slate-400 mb-1">Google Gemini API Key</label>
-        <input type="password" id="custom-api-key-input" placeholder="AIzaSy..." class="glass-input rounded-xl px-3 py-2 text-xs w-full font-mono text-white">
+        <input type="password" id="custom-api-key-input" placeholder="AIzaSy..."
+          class="glass-input rounded-xl px-3 py-2 text-xs w-full font-mono text-white">
       </div>
 
       <div class="flex items-center justify-between pt-2">
         <button id="btn-clear-key" class="text-xs text-rose-400 hover:underline">Clear Stored Key</button>
-        <button id="btn-save-key" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition">
+        <button id="btn-save-key"
+          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition">
           Save Key
         </button>
       </div>
@@ -443,15 +499,18 @@
   </div>
 
   <!-- 12 Edge Cases Gallery Modal -->
-  <div id="samples-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="glass-panel max-w-3xl w-full max-h-[85vh] rounded-2xl p-6 flex flex-col space-y-4 border border-slate-700">
+  <div id="samples-modal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="glass-panel max-w-3xl w-full max-h-[85vh] rounded-2xl p-6 flex flex-col space-y-4 border border-slate-700">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <h3 class="font-bold text-base text-white flex items-center space-x-2">
             <i data-lucide="flask-conical" class="w-4 h-4 text-indigo-400"></i>
             <span>12 Receipt Edge Cases Test Suite</span>
           </h3>
-          <p class="text-xs text-slate-400">Click any preset to immediately load into the studio and verify behavior.</p>
+          <p class="text-xs text-slate-400">Click any preset to immediately load into the studio and verify behavior.
+          </p>
         </div>
         <button id="btn-close-samples" class="p-1 rounded-lg text-slate-400 hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -562,7 +621,8 @@
     const verificationSubtitle = document.getElementById('verification-subtitle');
     const verificationIcon = document.getElementById('verification-icon');
     const btnCopySummary = document.getElementById('btn-copy-summary');
-    const btnExportJson = document.getElementById('btn-export-json');
+    const btnDownloadImage = document.getElementById('btn-download-image');
+    const splitBreakdownCard = document.getElementById('split-breakdown-card');
 
     const settingsModal = document.getElementById('settings-modal');
     const btnOpenSettings = document.getElementById('btn-open-settings');
@@ -958,9 +1018,9 @@
             </div>
             <div class="text-[11px] text-slate-500 mt-0.5">
               ${shareCount > 0
-                ? `<span class="text-indigo-300 font-mono">${state.receiptData.currency}${perPerson}/person</span> (${shareCount} assigned)`
-                : `<span class="text-amber-400 font-medium">⚠️ Unassigned item</span>`
-              }
+            ? `<span class="text-indigo-300 font-mono">${state.receiptData.currency}${perPerson}/person</span> (${shareCount} assigned)`
+            : `<span class="text-amber-400 font-medium">⚠️ Unassigned item</span>`
+          }
             </div>
           </div>
 
@@ -1343,16 +1403,56 @@
         });
       });
 
-      // Export JSON
-      btnExportJson.addEventListener('click', () => {
-        if (!state.splitResult) return;
-        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state.splitResult, null, 2));
-        const a = document.createElement('a');
-        a.setAttribute('href', dataStr);
-        a.setAttribute('download', `bill_split_${state.receiptData.merchant_name.replace(/\s+/g, '_')}.json`);
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+      // Download Image (high-resolution PNG capture of the Proportional Split Breakdown card)
+      btnDownloadImage.addEventListener('click', async () => {
+        if (!state.splitResult) {
+          alert('Please compute or review the split before downloading the image.');
+          return;
+        }
+
+        const originalHtml = btnDownloadImage.innerHTML;
+        btnDownloadImage.innerHTML = `
+          <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <span>Rendering...</span>
+        `;
+        btnDownloadImage.disabled = true;
+
+        try {
+          // Temporarily hide action buttons on the cloned card during capture
+          const canvas = await html2canvas(splitBreakdownCard, {
+            scale: 2, // 2x resolution for ultra-sharp typography
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#0b0f19', // Matches dark app background
+            ignoreElements: (el) => {
+              return el.id === 'btn-copy-summary' || el.id === 'btn-download-image';
+            },
+            onclone: (clonedDoc) => {
+              const card = clonedDoc.getElementById('split-breakdown-card');
+              if (card) {
+                card.style.borderRadius = '16px';
+                card.style.padding = '24px';
+                card.style.boxShadow = 'none';
+              }
+            }
+          });
+
+          // Trigger PNG download
+          const imgData = canvas.toDataURL('image/png', 1.0);
+          const link = document.createElement('a');
+          link.href = imgData;
+          link.download = 'bill_split_breakdown.png';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        } catch (err) {
+          console.error('Image capture error:', err);
+          alert('Failed to generate image: ' + err.message);
+        } finally {
+          btnDownloadImage.innerHTML = originalHtml;
+          btnDownloadImage.disabled = false;
+          lucide.createIcons();
+        }
       });
 
       // Modals
@@ -1409,4 +1509,5 @@
     window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
+
 </html>
