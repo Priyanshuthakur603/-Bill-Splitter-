@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartSplit AI | Multimodal Receipt & Proportional Bill Splitter</title>
+  <meta name="description" content="Parse receipt photos, extract line items with Gemini Vision, review confidence, and compute proportional bill splits mathematically.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Google Fonts & Custom CSS -->
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <i data-lucide="receipt" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-white via-indigo-100 to-indigo-300 bg-clip-text text-transparent">
+            SmartSplit AI
+          </h1>
+          <p class="text-xs text-slate-400 font-medium hidden sm:block">Proportional Multimodal Bill Splitting</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <!-- API Status Indicator -->
+        <div id="gemini-status-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800/90 border border-slate-700 text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="status-dot"></span>
+          <span id="status-text">Checking Gemini...</span>
+        </div>
+
+        <!-- Sample Edge Cases Quick Button -->
+        <button id="btn-samples-modal" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 transition flex items-center space-x-1.5">
+          <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+          <span>12 Edge Cases</span>
+        </button>
+
+        <!-- Settings / API Key Button -->
+        <button id="btn-open-settings" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Configure Gemini API Key">
+          <i data-lucide="key" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Dual-Pane Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: Receipt Canvas & Image Controls (5 cols on lg) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- Upload & Preset Card -->
+      <div class="glass-panel rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="camera" class="w-4 h-4 text-indigo-400"></i>
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">Receipt Photo</h2>
+          </div>
+          <span id="file-info-badge" class="text-xs text-slate-400 font-mono hidden">sample.png</span>
+        </div>
+
+        <!-- Drag and Drop Dropzone -->
+        <div id="dropzone" class="border-2 border-dashed border-slate-700 hover:border-indigo-500/80 rounded-xl p-6 text-center cursor-pointer transition bg-slate-900/40 hover:bg-indigo-950/20 group relative">
+          <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" class="hidden">
+          <div class="flex flex-col items-center justify-center space-y-2">
+            <div class="w-12 h-12 rounded-full bg-slate-800 group-hover:bg-indigo-600/20 group-hover:text-indigo-400 text-slate-400 flex items-center justify-center transition">
+              <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-200">
+              Drag receipt photo here or <span class="text-indigo-400 underline decoration-indigo-400/50">browse</span>
+            </p>
+            <p class="text-xs text-slate-500">Supports JPG, PNG, WEBP up to 10MB</p>
+          </div>
+        </div>
+
+        <!-- Quick Sample Selector Dropdown -->
+        <div class="mt-3 flex items-center space-x-2">
+          <label for="sample-select" class="text-xs text-slate-400 whitespace-nowrap">Load Preset:</label>
+          <select id="sample-select" class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-slate-200 flex-1 truncate">
+            <option value="">-- Choose Edge Case Sample --</option>
+          </select>
+          <button id="btn-load-sample" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition">
+            Load
+          </button>
+        </div>
+      </div>
+
+      <!-- Receipt Canvas Viewer with Pan/Zoom Toolbar -->
+      <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col min-h-[460px] relative overflow-hidden">
+        <!-- Canvas Toolbar -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 text-slate-400">
+          <div class="flex items-center space-x-1">
+            <button id="btn-zoom-in" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Zoom In">
+              <i data-lucide="zoom-in" class="w-4 h-4"></i>
+            </button>
+            <button id="btn-zoom-out" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Zoom Out">
+              <i data-lucide="zoom-out" class="w-4 h-4"></i>
+            </button>
+            <button id="btn-rotate" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition" title="Rotate 90°">
+              <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+            </button>
+            <button id="btn-zoom-reset" class="p-1.5 rounded-md hover:bg-slate-800 hover:text-slate-200 transition text-xs font-mono" title="Reset">
+              100%
+            </button>
+          </div>
+          <div class="text-xs text-slate-500 flex items-center space-x-1">
+            <i data-lucide="move" class="w-3 h-3"></i>
+            <span>Drag to pan</span>
+          </div>
+        </div>
+
+        <!-- Image Container with Drag & Zoom -->
+        <div id="image-viewport" class="flex-1 relative overflow-hidden bg-slate-950/60 rounded-xl mt-3 flex items-center justify-center image-canvas-wrapper min-h-[360px]">
+          <!-- Placeholder State -->
+          <div id="viewer-placeholder" class="text-center p-6 text-slate-500">
+            <i data-lucide="image" class="w-12 h-12 mx-auto mb-2 opacity-40"></i>
+            <p class="text-sm">No receipt image loaded yet</p>
+            <p class="text-xs mt-1 text-slate-600">Upload a photo or select an edge case above</p>
+          </div>
+
+          <!-- Active Receipt Image -->
+          <img id="receipt-preview-img" src="" alt="Receipt Preview" class="hidden max-w-none transition-transform duration-75 origin-center shadow-2xl rounded">
+
+          <!-- Processing Overlay Spinner -->
+          <div id="extraction-spinner" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex flex-col items-center justify-center z-20">
+            <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-3 text-sm font-semibold text-indigo-300">Gemini Vision is parsing receipt...</p>
+            <p class="text-xs text-slate-400 mt-1">Extracting line items, taxes & confidence scores</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Interactive Review, Human Correction & Proportional Split (7 cols on lg) -->
+    <section class="lg:col-span-7 flex flex-col space-y-6">
+
+      <!-- Mismatch Diagnostic Banner (Visible when arithmetic discrepancy is detected) -->
+      <div id="mismatch-banner" class="hidden p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm flex items-start space-x-3 transition-all duration-300">
+        <div class="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 flex-shrink-0">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-amber-300">Printed Math Mismatch Flagged!</h4>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300">Edge Case Alert</span>
+          </div>
+          <p id="mismatch-explanation" class="mt-1 text-amber-200/90 leading-relaxed">
+            The sum of extracted line items does not equal the printed subtotal.
+          </p>
+          <div class="mt-2.5 flex items-center space-x-2">
+            <button id="btn-fix-subtotal" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition">
+              Sync Subtotal with Items Sum
+            </button>
+            <span class="text-xs text-amber-400/80">or edit item prices below manually.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Human Review & Line Item Studio -->
+      <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5">
+        
+        <!-- Header: Merchant & Overall Confidence -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div class="flex-1 min-w-[200px]">
+            <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Merchant / Restaurant</label>
+            <div class="relative">
+              <input type="text" id="merchant-input" value="Sample Bistro" class="glass-input rounded-lg px-3 py-1.5 text-base font-bold w-full text-white font-display">
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <div>
+              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Currency</label>
+              <input type="text" id="currency-input" value="$" class="glass-input rounded-lg px-2.5 py-1.5 text-xs text-center w-14 font-mono font-bold">
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">OCR Confidence</label>
+              <div id="overall-confidence-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                <span id="confidence-pct">94% High</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Items Editor Table -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="list-ordered" class="w-4 h-4 text-indigo-400"></i>
+              <h3 class="text-xs uppercase font-bold tracking-wider text-slate-300">Extracted Line Items</h3>
+              <span id="items-count-badge" class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-mono">3 Items</span>
+            </div>
+            <button id="btn-add-item" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center space-x-1 shadow-sm">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add Item</span>
+            </button>
+          </div>
+
+          <!-- Items Table Container -->
+          <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/40">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-900/90 text-slate-400">
+                  <th class="py-2.5 px-3 font-semibold">Item Description</th>
+                  <th class="py-2.5 px-2 font-semibold w-16 text-center">Qty</th>
+                  <th class="py-2.5 px-3 font-semibold w-24 text-right">Price</th>
+                  <th class="py-2.5 px-2 font-semibold w-24 text-center">Confidence</th>
+                  <th class="py-2.5 px-2 font-semibold w-12 text-center"></th>
+                </tr>
+              </thead>
+              <tbody id="line-items-tbody" class="divide-y divide-slate-800/50">
+                <!-- Dynamically injected rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Taxes, Service Charges & Subtotal Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
+          <div class="glass-card rounded-xl p-3">
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Subtotal</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs text-slate-400 currency-sym">$</span>
+              <input type="number" step="0.01" id="subtotal-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+            </div>
+          </div>
+
+          <div class="glass-card rounded-xl p-3">
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Tax (Sales/VAT)</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs text-slate-400 currency-sym">$</span>
+              <input type="number" step="0.01" id="tax-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+            </div>
+          </div>
+
+          <div class="glass-card rounded-xl p-3">
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Service Fee/Tip</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs text-slate-400 currency-sym">$</span>
+              <input type="number" step="0.01" id="service-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold">
+            </div>
+          </div>
+
+          <div class="glass-card rounded-xl p-3">
+            <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Discounts</span>
+            <div class="flex items-center space-x-1">
+              <span class="text-xs text-slate-400 currency-sym">$</span>
+              <input type="number" step="0.01" id="discount-input" value="0.00" class="glass-input rounded-md px-2 py-1 text-xs w-full font-mono font-semibold text-emerald-400">
+            </div>
+          </div>
+        </div>
+
+        <!-- Grand Total Banner -->
+        <div class="p-3.5 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="wallet" class="w-4 h-4 text-indigo-400"></i>
+            <span class="text-xs uppercase font-bold tracking-wider text-slate-300">Receipt Grand Total:</span>
+          </div>
+          <div class="flex items-center space-x-1">
+            <span class="text-sm font-bold text-slate-400 currency-sym">$</span>
+            <input type="number" step="0.01" id="grand-total-input" value="0.00" class="glass-input rounded-md px-2.5 py-1 text-sm font-bold w-28 font-mono text-right text-indigo-300">
+          </div>
+        </div>
+      </div>
+
+      <!-- Participant & Item Assignment Studio -->
+      <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5">
+        
+        <!-- Participant Manager Header -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
+              <h3 class="text-xs uppercase font-bold tracking-wider text-slate-300">Participants</h3>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="btn-assign-all-everyone" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                Assign All to Everyone
+              </button>
+              <button id="btn-clear-assignments" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Add Participant Input & Chips Row -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div id="participant-chips" class="flex flex-wrap items-center gap-2">
+              <!-- Dynamically populated participant badges -->
+            </div>
+
+            <!-- Inline Add Participant Form -->
+            <div class="flex items-center space-x-1">
+              <input type="text" id="new-participant-input" placeholder="+ Add Name" class="glass-input rounded-lg px-2.5 py-1 text-xs w-28 text-slate-200">
+              <button id="btn-add-participant" class="p-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Item Assignment Matrix -->
+        <div>
+          <h4 class="text-xs uppercase font-semibold text-slate-400 mb-2.5">Assign Items to People</h4>
+          <div id="assignment-list" class="space-y-2.5">
+            <!-- Dynamically populated assignment rows -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Final Proportional Split Output & Verification -->
+      <div class="glass-panel rounded-2xl p-5 sm:p-6 space-y-5 glow-badge">
+        
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-white flex items-center space-x-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+              <span>Proportional Split Breakdown</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Taxes & fees distributed strictly proportional to raw food subtotal.</p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button id="btn-copy-summary" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy Text</span>
+            </button>
+            <button id="btn-export-json" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Export JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Breakdown Output Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 bg-slate-900 text-slate-400">
+                <th class="py-2.5 px-3 font-semibold">Person</th>
+                <th class="py-2.5 px-3 font-semibold">Items Consumed</th>
+                <th class="py-2.5 px-3 font-semibold text-right">Food Base</th>
+                <th class="py-2.5 px-3 font-semibold text-right">Tax & Fees</th>
+                <th class="py-2.5 px-3 font-semibold text-right font-bold text-indigo-300">FINAL TOTAL</th>
+              </tr>
+            </thead>
+            <tbody id="split-summary-tbody" class="divide-y divide-slate-800/60">
+              <!-- Dynamically populated breakdown -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Cent-Balancing Mathematical Verification Card -->
+        <div id="verification-card" class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex items-center space-x-2.5">
+            <div id="verification-icon" class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            </div>
+            <div>
+              <span id="verification-title" class="font-bold text-slate-200">Penny-Perfect Reconciliation Verified</span>
+              <p id="verification-subtitle" class="text-slate-400 text-[11px]">Sum of individual shares exactly equals receipt grand total.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4 font-mono">
+            <div>
+              <span class="text-slate-500 text-[10px] block">SUM OF SHARES</span>
+              <span id="shares-sum-display" class="font-bold text-emerald-400 text-sm">$0.00</span>
+            </div>
+            <div class="text-slate-600 font-bold">===</div>
+            <div>
+              <span class="text-slate-500 text-[10px] block">GRAND TOTAL</span>
+              <span id="target-total-display" class="font-bold text-indigo-300 text-sm">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Settings Modal for Gemini API Key -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-md w-full rounded-2xl p-6 space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white flex items-center space-x-2">
+          <i data-lucide="key" class="w-4 h-4 text-indigo-400"></i>
+          <span>Gemini Vision API Configuration</span>
+        </h3>
+        <button id="btn-close-settings" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        The backend automatically loads your key from <code class="text-indigo-300">.env</code>. Alternatively, you can enter your API key here to test in this browser session.
+      </p>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-400 mb-1">Google Gemini API Key</label>
+        <input type="password" id="custom-api-key-input" placeholder="AIzaSy..." class="glass-input rounded-xl px-3 py-2 text-xs w-full font-mono text-white">
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button id="btn-clear-key" class="text-xs text-rose-400 hover:underline">Clear Stored Key</button>
+        <button id="btn-save-key" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition">
+          Save Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12 Edge Cases Gallery Modal -->
+  <div id="samples-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-3xl w-full max-h-[85vh] rounded-2xl p-6 flex flex-col space-y-4 border border-slate-700">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center space-x-2">
+            <i data-lucide="flask-conical" class="w-4 h-4 text-indigo-400"></i>
+            <span>12 Receipt Edge Cases Test Suite</span>
+          </h3>
+          <p class="text-xs text-slate-400">Click any preset to immediately load into the studio and verify behavior.</p>
+        </div>
+        <button id="btn-close-samples" class="p-1 rounded-lg text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="samples-grid" class="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3 pr-1">
+        <!-- Dynamically injected edge case cards -->
+      </div>
+    </div>
+  </div>
+
+  <!-- App Core Logic Script -->
+  <script>
+    // State management
+    const state = {
+      apiKey: localStorage.getItem('smartsplit_gemini_api_key') || '',
+      receiptData: {
+        merchant_name: 'The Bistro Garden',
+        line_items: [
+          { item_name: 'Truffle Fries', quantity: 1, price: 14.50 },
+          { item_name: 'Steak Frites', quantity: 2, price: 56.00 },
+          { item_name: 'Sparkling Water', quantity: 2, price: 9.00 }
+        ],
+        subtotal: 79.50,
+        taxes: 7.16,
+        service_charge: 7.95,
+        discounts: 0.0,
+        grand_total: 94.61,
+        currency: '$',
+        field_confidence: {
+          merchant_name: 0.95,
+          line_items: 0.90,
+          subtotal: 0.92,
+          taxes: 0.88,
+          service_charge: 0.90,
+          discounts: 0.95,
+          grand_total: 0.96
+        },
+        math_mismatch_warning: false,
+        mismatch_details: null
+      },
+      participants: [
+        { id: 'p1', name: 'Rahul', color: 'emerald' },
+        { id: 'p2', name: 'Priya', color: 'purple' },
+        { id: 'p3', name: 'Amit', color: 'amber' }
+      ],
+      assignments: [
+        { item_index: 0, assigned_participant_ids: ['p1', 'p2', 'p3'] }, // Shared Truffle Fries
+        { item_index: 1, assigned_participant_ids: ['p1', 'p2'] },       // Steak Frites
+        { item_index: 2, assigned_participant_ids: ['p3'] }              // Water
+      ],
+      samples: [],
+      splitResult: null,
+      viewer: {
+        scale: 1.0,
+        rotation: 0,
+        posX: 0,
+        posY: 0,
+        isDragging: false,
+        startX: 0,
+        startY: 0
+      }
+    };
+
+    const PARTICIPANT_COLORS = ['emerald', 'purple', 'amber', 'sky', 'rose', 'indigo', 'teal', 'orange'];
+
+    // DOM Elements
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const previewImg = document.getElementById('receipt-preview-img');
+    const viewerPlaceholder = document.getElementById('viewer-placeholder');
+    const imageViewport = document.getElementById('image-viewport');
+    const extractionSpinner = document.getElementById('extraction-spinner');
+    const sampleSelect = document.getElementById('sample-select');
+    const btnLoadSample = document.getElementById('btn-load-sample');
+    const fileInfoBadge = document.getElementById('file-info-badge');
+
+    const merchantInput = document.getElementById('merchant-input');
+    const currencyInput = document.getElementById('currency-input');
+    const subtotalInput = document.getElementById('subtotal-input');
+    const taxInput = document.getElementById('tax-input');
+    const serviceInput = document.getElementById('service-input');
+    const discountInput = document.getElementById('discount-input');
+    const grandTotalInput = document.getElementById('grand-total-input');
+    const lineItemsTbody = document.getElementById('line-items-tbody');
+    const btnAddItem = document.getElementById('btn-add-item');
+    const itemsCountBadge = document.getElementById('items-count-badge');
+    const overallConfidenceBadge = document.getElementById('overall-confidence-badge');
+    const confidencePct = document.getElementById('confidence-pct');
+
+    const mismatchBanner = document.getElementById('mismatch-banner');
+    const mismatchExplanation = document.getElementById('mismatch-explanation');
+    const btnFixSubtotal = document.getElementById('btn-fix-subtotal');
+
+    const participantChips = document.getElementById('participant-chips');
+    const newParticipantInput = document.getElementById('new-participant-input');
+    const btnAddParticipant = document.getElementById('btn-add-participant');
+    const assignmentList = document.getElementById('assignment-list');
+    const btnAssignAllEveryone = document.getElementById('btn-assign-all-everyone');
+    const btnClearAssignments = document.getElementById('btn-clear-assignments');
+
+    const splitSummaryTbody = document.getElementById('split-summary-tbody');
+    const sharesSumDisplay = document.getElementById('shares-sum-display');
+    const targetTotalDisplay = document.getElementById('target-total-display');
+    const verificationCard = document.getElementById('verification-card');
+    const verificationTitle = document.getElementById('verification-title');
+    const verificationSubtitle = document.getElementById('verification-subtitle');
+    const verificationIcon = document.getElementById('verification-icon');
+    const btnCopySummary = document.getElementById('btn-copy-summary');
+    const btnExportJson = document.getElementById('btn-export-json');
+
+    const settingsModal = document.getElementById('settings-modal');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+    const customApiKeyInput = document.getElementById('custom-api-key-input');
+    const btnSaveKey = document.getElementById('btn-save-key');
+    const btnClearKey = document.getElementById('btn-clear-key');
+
+    const samplesModal = document.getElementById('samples-modal');
+    const btnSamplesModal = document.getElementById('btn-samples-modal');
+    const btnCloseSamples = document.getElementById('btn-close-samples');
+    const samplesGrid = document.getElementById('samples-grid');
+
+    const geminiStatusBadge = document.getElementById('gemini-status-badge');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+
+    // Canvas buttons
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    const btnZoomOut = document.getElementById('btn-zoom-out');
+    const btnRotate = document.getElementById('btn-rotate');
+    const btnZoomReset = document.getElementById('btn-zoom-reset');
+
+    // Initialize App
+    async function initApp() {
+      lucide.createIcons();
+      checkBackendHealth();
+      await fetchSampleReceipts();
+      bindEvents();
+      bindViewerControls();
+      renderAll();
+      triggerProportionalSplit();
+    }
+
+    // Health check
+    async function checkBackendHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        if (data.gemini_configured || state.apiKey) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          statusText.textContent = 'Gemini Ready';
+          geminiStatusBadge.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-950/60 border border-emerald-500/30 text-emerald-300';
+        } else {
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+          statusText.textContent = 'Key Not Set (Presets Active)';
+          geminiStatusBadge.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-950/60 border border-amber-500/30 text-amber-300';
+        }
+      } catch (err) {
+        statusDot.className = 'w-2 h-2 rounded-full bg-rose-400';
+        statusText.textContent = 'Backend Offline';
+      }
+    }
+
+    // Fetch sample edge cases
+    async function fetchSampleReceipts() {
+      try {
+        const res = await fetch('/api/sample-receipts');
+        const data = await res.json();
+        state.samples = data.samples || [];
+
+        // Populate dropdown
+        sampleSelect.innerHTML = '<option value="">-- Choose Edge Case Sample --</option>';
+        state.samples.forEach(sample => {
+          const opt = document.createElement('option');
+          opt.value = sample.id;
+          opt.textContent = `${sample.name}`;
+          sampleSelect.appendChild(opt);
+        });
+
+        // Populate samples gallery modal
+        renderSamplesModal();
+      } catch (err) {
+        console.error('Failed to load sample receipts:', err);
+      }
+    }
+
+    function renderSamplesModal() {
+      samplesGrid.innerHTML = '';
+      state.samples.forEach(sample => {
+        const card = document.createElement('div');
+        card.className = 'p-3.5 rounded-xl bg-slate-900 hover:bg-indigo-950/30 border border-slate-800 hover:border-indigo-500/40 cursor-pointer transition flex space-x-3 items-start group';
+        card.innerHTML = `
+          <div class="w-16 h-20 rounded-lg bg-slate-950 overflow-hidden border border-slate-800 flex-shrink-0 relative">
+            <img src="${sample.image_url}" class="w-full h-full object-cover group-hover:scale-105 transition" alt="${sample.name}">
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs font-bold text-slate-200 group-hover:text-indigo-300 transition truncate">${sample.name}</h4>
+            <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${sample.description}</p>
+            <div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+              <span>Items: ${sample.ground_truth.line_items.length}</span>
+              <span class="font-bold text-slate-300">${sample.ground_truth.currency || '$'}${sample.ground_truth.grand_total.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          loadSampleEdgeCase(sample.id);
+          samplesModal.classList.add('hidden');
+        });
+        samplesGrid.appendChild(card);
+      });
+    }
+
+    // Load sample edge case
+    function loadSampleEdgeCase(caseId) {
+      const sample = state.samples.find(s => s.id === caseId);
+      if (!sample) return;
+
+      const gt = sample.ground_truth;
+      state.receiptData = {
+        merchant_name: gt.merchant_name,
+        line_items: JSON.parse(JSON.stringify(gt.line_items)),
+        subtotal: gt.subtotal,
+        taxes: gt.taxes,
+        service_charge: gt.service_charge,
+        discounts: gt.discounts,
+        grand_total: gt.grand_total,
+        currency: gt.currency || '$',
+        field_confidence: gt.field_confidence || {},
+        math_mismatch_warning: false,
+        mismatch_details: null
+      };
+
+      // Set preview image
+      previewImg.src = sample.image_url;
+      previewImg.classList.remove('hidden');
+      viewerPlaceholder.classList.add('hidden');
+      fileInfoBadge.textContent = `${caseId}.png`;
+      fileInfoBadge.classList.remove('hidden');
+      resetViewerTransform();
+
+      // Reset item assignments to default (round robin)
+      state.assignments = state.receiptData.line_items.map((it, idx) => ({
+        item_index: idx,
+        assigned_participant_ids: [state.participants[idx % state.participants.length].id]
+      }));
+
+      // Check math mismatch
+      checkMathDiscrepancy();
+      renderAll();
+      triggerProportionalSplit();
+    }
+
+    // Upload & Extract Receipt Photo
+    async function handleFileUpload(file) {
+      if (!file) return;
+
+      fileInfoBadge.textContent = file.name;
+      fileInfoBadge.classList.remove('hidden');
+
+      // Local preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewImg.src = e.target.result;
+        previewImg.classList.remove('hidden');
+        viewerPlaceholder.classList.add('hidden');
+        resetViewerTransform();
+      };
+      reader.readAsDataURL(file);
+
+      // Call API
+      extractionSpinner.classList.remove('hidden');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const headers = {};
+        if (state.apiKey) {
+          headers['X-Gemini-API-Key'] = state.apiKey;
+        }
+
+        const res = await fetch('/api/extract', {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Extraction failed with status ${res.status}`);
+        }
+
+        const result = await res.json();
+        state.receiptData = result;
+
+        // Auto-assign items
+        state.assignments = state.receiptData.line_items.map((it, idx) => ({
+          item_index: idx,
+          assigned_participant_ids: [state.participants[idx % state.participants.length].id]
+        }));
+
+        renderAll();
+        triggerProportionalSplit();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        extractionSpinner.classList.add('hidden');
+      }
+    }
+
+    // Mathematical verification check
+    function checkMathDiscrepancy() {
+      const itemsSum = Number(state.receiptData.line_items.reduce((acc, it) => acc + (it.price || 0), 0).toFixed(2));
+      const subtotal = Number(state.receiptData.subtotal.toFixed(2));
+      const expectedTotal = Number((subtotal + state.receiptData.taxes + state.receiptData.service_charge - state.receiptData.discounts).toFixed(2));
+      const grandTotal = Number(state.receiptData.grand_total.toFixed(2));
+
+      const subtotalDiff = Math.abs(itemsSum - subtotal);
+      const totalDiff = Math.abs(expectedTotal - grandTotal);
+
+      if (subtotalDiff > 0.05 || totalDiff > 0.05) {
+        state.receiptData.math_mismatch_warning = true;
+        mismatchBanner.classList.remove('hidden');
+
+        let msg = '';
+        if (subtotalDiff > 0.05) {
+          msg += `Sum of line items (${state.receiptData.currency}${itemsSum.toFixed(2)}) does not match printed subtotal (${state.receiptData.currency}${subtotal.toFixed(2)}). Discrepancy: ${state.receiptData.currency}${subtotalDiff.toFixed(2)}. `;
+        }
+        if (totalDiff > 0.05) {
+          msg += `Subtotal + Fees - Discounts (${state.receiptData.currency}${expectedTotal.toFixed(2)}) does not match grand total (${state.receiptData.currency}${grandTotal.toFixed(2)}).`;
+        }
+        mismatchExplanation.textContent = msg;
+      } else {
+        state.receiptData.math_mismatch_warning = false;
+        mismatchBanner.classList.add('hidden');
+      }
+    }
+
+    // Render all components
+    function renderAll() {
+      // Currency symbol across UI
+      document.querySelectorAll('.currency-sym').forEach(el => el.textContent = state.receiptData.currency || '$');
+      currencyInput.value = state.receiptData.currency || '$';
+      merchantInput.value = state.receiptData.merchant_name || 'Receipt';
+      subtotalInput.value = state.receiptData.subtotal.toFixed(2);
+      taxInput.value = state.receiptData.taxes.toFixed(2);
+      serviceInput.value = state.receiptData.service_charge.toFixed(2);
+      discountInput.value = state.receiptData.discounts.toFixed(2);
+      grandTotalInput.value = state.receiptData.grand_total.toFixed(2);
+
+      // Overall confidence
+      const confs = Object.values(state.receiptData.field_confidence || {});
+      const avgConf = confs.length ? Math.round((confs.reduce((a, b) => a + b, 0) / confs.length) * 100) : 90;
+      confidencePct.textContent = `${avgConf}% ${avgConf >= 85 ? 'High' : avgConf >= 75 ? 'Moderate' : 'Low'}`;
+      if (avgConf >= 85) {
+        overallConfidenceBadge.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1.5';
+      } else if (avgConf >= 75) {
+        overallConfidenceBadge.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center space-x-1.5';
+      } else {
+        overallConfidenceBadge.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center space-x-1.5';
+      }
+
+      renderLineItemsTable();
+      renderParticipantChips();
+      renderAssignmentMatrix();
+      checkMathDiscrepancy();
+      lucide.createIcons();
+    }
+
+    // Render line items
+    function renderLineItemsTable() {
+      lineItemsTbody.innerHTML = '';
+      itemsCountBadge.textContent = `${state.receiptData.line_items.length} Items`;
+
+      const itemConf = state.receiptData.field_confidence.line_items !== undefined
+        ? state.receiptData.field_confidence.line_items
+        : 0.90;
+
+      state.receiptData.line_items.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition group';
+
+        const isLowConf = itemConf < 0.80;
+        const confBadgeClass = isLowConf
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 low-confidence-pulse'
+          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            <input type="text" value="${escapeHtml(item.item_name)}" data-idx="${index}" data-field="item_name"
+              class="glass-input rounded px-2 py-1 text-xs w-full text-slate-100 font-medium ${isLowConf ? 'border-amber-500/50' : ''}">
+          </td>
+          <td class="py-2.5 px-2 text-center">
+            <input type="number" step="0.5" min="0" value="${item.quantity}" data-idx="${index}" data-field="quantity"
+              class="glass-input rounded px-1.5 py-1 text-xs w-14 text-center font-mono">
+          </td>
+          <td class="py-2.5 px-3 text-right">
+            <div class="flex items-center justify-end space-x-1">
+              <span class="text-slate-400 font-mono">${state.receiptData.currency}</span>
+              <input type="number" step="0.01" min="0" value="${item.price.toFixed(2)}" data-idx="${index}" data-field="price"
+                class="glass-input rounded px-1.5 py-1 text-xs w-20 text-right font-mono font-semibold text-slate-100 ${isLowConf ? 'border-amber-500/50' : ''}">
+            </div>
+          </td>
+          <td class="py-2.5 px-2 text-center">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono border ${confBadgeClass}" title="${isLowConf ? 'Low OCR confidence: Check photo' : 'High confidence'}">
+              ${isLowConf ? '⚠️ ' : ''}${Math.round(itemConf * 100)}%
+            </span>
+          </td>
+          <td class="py-2.5 px-2 text-center">
+            <button data-idx="${index}" class="btn-delete-item p-1 text-slate-500 hover:text-rose-400 transition" title="Delete item">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        `;
+        lineItemsTbody.appendChild(tr);
+      });
+
+      // Bind input events
+      lineItemsTbody.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          const field = e.target.dataset.field;
+          const val = field === 'item_name' ? e.target.value : parseFloat(e.target.value) || 0;
+          state.receiptData.line_items[idx][field] = val;
+          checkMathDiscrepancy();
+          renderAssignmentMatrix();
+          triggerProportionalSplit();
+        });
+      });
+
+      // Bind delete buttons
+      lineItemsTbody.querySelectorAll('.btn-delete-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(btn.dataset.idx);
+          state.receiptData.line_items.splice(idx, 1);
+          state.assignments.splice(idx, 1);
+          // Re-index remaining assignments
+          state.assignments.forEach((a, i) => a.item_index = i);
+          renderAll();
+          triggerProportionalSplit();
+        });
+      });
+    }
+
+    // Render Participant Chips
+    function renderParticipantChips() {
+      participantChips.innerHTML = '';
+      state.participants.forEach((p, idx) => {
+        const chip = document.createElement('div');
+        const colorClasses = getParticipantColorClasses(p.color);
+        chip.className = `flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${colorClasses.chip} shadow-sm`;
+        chip.innerHTML = `
+          <span class="w-2 h-2 rounded-full ${colorClasses.dot}"></span>
+          <span>${escapeHtml(p.name)}</span>
+          ${state.participants.length > 1 ? `
+            <button data-pid="${p.id}" class="btn-remove-participant ml-1 hover:text-rose-300 text-slate-400 text-xs">
+              &times;
+            </button>
+          ` : ''}
+        `;
+        participantChips.appendChild(chip);
+      });
+
+      // Bind remove participant
+      participantChips.querySelectorAll('.btn-remove-participant').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const pid = btn.dataset.pid;
+          state.participants = state.participants.filter(p => p.id !== pid);
+          // Remove from assignments
+          state.assignments.forEach(a => {
+            a.assigned_participant_ids = a.assigned_participant_ids.filter(id => id !== pid);
+          });
+          renderAll();
+          triggerProportionalSplit();
+        });
+      });
+    }
+
+    // Render Assignment Matrix
+    function renderAssignmentMatrix() {
+      assignmentList.innerHTML = '';
+
+      state.receiptData.line_items.forEach((item, index) => {
+        let assignment = state.assignments.find(a => a.item_index === index);
+        if (!assignment) {
+          assignment = { item_index: index, assigned_participant_ids: [] };
+          state.assignments.push(assignment);
+        }
+
+        const row = document.createElement('div');
+        const isUnassigned = assignment.assigned_participant_ids.length === 0;
+        row.className = `p-3 rounded-xl border ${isUnassigned ? 'border-amber-500/40 bg-amber-500/5' : 'border-slate-800 bg-slate-900/50'} transition flex flex-col sm:flex-row sm:items-center justify-between gap-2.5`;
+
+        // Item title & price
+        const shareCount = assignment.assigned_participant_ids.length;
+        const perPerson = shareCount > 0 ? (item.price / shareCount).toFixed(2) : '0.00';
+
+        let assignmentHtml = `
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center space-x-2">
+              <span class="font-semibold text-xs text-slate-200 truncate">${escapeHtml(item.item_name)}</span>
+              <span class="font-mono text-xs text-slate-400 font-bold">${state.receiptData.currency}${item.price.toFixed(2)}</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">
+              ${shareCount > 0
+                ? `<span class="text-indigo-300 font-mono">${state.receiptData.currency}${perPerson}/person</span> (${shareCount} assigned)`
+                : `<span class="text-amber-400 font-medium">⚠️ Unassigned item</span>`
+              }
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button data-idx="${index}" class="btn-toggle-all px-2 py-1 rounded-lg text-[11px] font-semibold border ${shareCount === state.participants.length ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'} transition">
+              Everyone
+            </button>
+        `;
+
+        // Participant toggle buttons
+        state.participants.forEach(p => {
+          const isSelected = assignment.assigned_participant_ids.includes(p.id);
+          const colorClasses = getParticipantColorClasses(p.color);
+          const btnClass = isSelected
+            ? `${colorClasses.activeBg} ${colorClasses.activeText} ${colorClasses.activeBorder}`
+            : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-700';
+
+          assignmentHtml += `
+            <button data-idx="${index}" data-pid="${p.id}" class="btn-toggle-participant px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${btnClass}">
+              ${escapeHtml(p.name)}
+            </button>
+          `;
+        });
+
+        assignmentHtml += `</div>`;
+        row.innerHTML = assignmentHtml;
+        assignmentList.appendChild(row);
+      });
+
+      // Bind toggle participant
+      assignmentList.querySelectorAll('.btn-toggle-participant').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          const pid = btn.dataset.pid;
+          let assignment = state.assignments.find(a => a.item_index === idx);
+          if (!assignment) return;
+
+          if (assignment.assigned_participant_ids.includes(pid)) {
+            assignment.assigned_participant_ids = assignment.assigned_participant_ids.filter(id => id !== pid);
+          } else {
+            assignment.assigned_participant_ids.push(pid);
+          }
+          renderAssignmentMatrix();
+          triggerProportionalSplit();
+        });
+      });
+
+      // Bind toggle everyone
+      assignmentList.querySelectorAll('.btn-toggle-all').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          let assignment = state.assignments.find(a => a.item_index === idx);
+          if (!assignment) return;
+
+          if (assignment.assigned_participant_ids.length === state.participants.length) {
+            assignment.assigned_participant_ids = [];
+          } else {
+            assignment.assigned_participant_ids = state.participants.map(p => p.id);
+          }
+          renderAssignmentMatrix();
+          triggerProportionalSplit();
+        });
+      });
+    }
+
+    // Call backend to compute proportional split
+    async function triggerProportionalSplit() {
+      if (!state.participants.length || !state.receiptData.line_items.length) {
+        return;
+      }
+
+      const payload = {
+        receipt_data: state.receiptData,
+        participants: state.participants,
+        assignments: state.assignments
+      };
+
+      try {
+        const res = await fetch('/api/split', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Split calculation failed');
+        }
+
+        const data = await res.json();
+        state.splitResult = data;
+        renderSplitSummary(data);
+      } catch (err) {
+        console.error('Split error:', err);
+      }
+    }
+
+    // Render Proportional Split Summary Table
+    function renderSplitSummary(result) {
+      splitSummaryTbody.innerHTML = '';
+
+      result.shares.forEach(share => {
+        const p = state.participants.find(part => part.id === share.participant_id);
+        const colorClasses = getParticipantColorClasses(p ? p.color : 'indigo');
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/40 transition';
+
+        // Items badges
+        let itemsHtml = '';
+        if (share.items_consumed.length === 0) {
+          itemsHtml = '<span class="text-slate-500 italic">No items assigned</span>';
+        } else {
+          itemsHtml = '<div class="flex flex-wrap gap-1">';
+          share.items_consumed.forEach(it => {
+            const fractionText = it.split_count > 1 ? ` (1/${it.split_count})` : '';
+            itemsHtml += `
+              <span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 border border-slate-700 text-slate-300">
+                ${escapeHtml(it.item_name)}${fractionText}: <strong class="text-white">${state.receiptData.currency}${it.individual_share.toFixed(2)}</strong>
+              </span>
+            `;
+          });
+          itemsHtml += '</div>';
+        }
+
+        tr.innerHTML = `
+          <td class="py-3 px-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full ${colorClasses.dot}"></span>
+              <span class="font-bold text-slate-100">${escapeHtml(share.name)}</span>
+            </div>
+          </td>
+          <td class="py-3 px-3">${itemsHtml}</td>
+          <td class="py-3 px-3 text-right font-mono font-medium text-slate-300">
+            ${state.receiptData.currency}${share.food_subtotal.toFixed(2)}
+          </td>
+          <td class="py-3 px-3 text-right font-mono text-slate-400">
+            ${state.receiptData.currency}${share.proportional_fee_share.toFixed(2)}
+          </td>
+          <td class="py-3 px-3 text-right font-mono font-bold text-sm text-indigo-300">
+            ${state.receiptData.currency}${share.final_total.toFixed(2)}
+          </td>
+        `;
+        splitSummaryTbody.appendChild(tr);
+      });
+
+      // Verification displays
+      sharesSumDisplay.textContent = `${state.receiptData.currency}${result.calculated_grand_total.toFixed(2)}`;
+      targetTotalDisplay.textContent = `${state.receiptData.currency}${result.receipt_grand_total.toFixed(2)}`;
+
+      if (result.is_balanced) {
+        verificationCard.className = 'p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 text-xs';
+        verificationIcon.className = 'w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center';
+        verificationTitle.textContent = 'Penny-Perfect Reconciliation Verified';
+        verificationTitle.className = 'font-bold text-emerald-300';
+        verificationSubtitle.textContent = `Zero penny loss! Sum of shares strictly equals ${state.receiptData.currency}${result.receipt_grand_total.toFixed(2)}.`;
+      } else {
+        verificationCard.className = 'p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs';
+        verificationIcon.className = 'w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center';
+        verificationTitle.textContent = 'Discrepancy In Progress';
+        verificationTitle.className = 'font-bold text-amber-300';
+        verificationSubtitle.textContent = 'Adjust items or fees to balance with grand total.';
+      }
+    }
+
+    // Helper: color tokens for participants
+    function getParticipantColorClasses(color) {
+      const map = {
+        emerald: {
+          chip: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+          dot: 'bg-emerald-400',
+          activeBg: 'bg-emerald-600',
+          activeText: 'text-white',
+          activeBorder: 'border-emerald-500'
+        },
+        purple: {
+          chip: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
+          dot: 'bg-purple-400',
+          activeBg: 'bg-purple-600',
+          activeText: 'text-white',
+          activeBorder: 'border-purple-500'
+        },
+        amber: {
+          chip: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+          dot: 'bg-amber-400',
+          activeBg: 'bg-amber-600',
+          activeText: 'text-white',
+          activeBorder: 'border-amber-500'
+        },
+        sky: {
+          chip: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
+          dot: 'bg-sky-400',
+          activeBg: 'bg-sky-600',
+          activeText: 'text-white',
+          activeBorder: 'border-sky-500'
+        },
+        rose: {
+          chip: 'bg-rose-500/10 text-rose-300 border-rose-500/30',
+          dot: 'bg-rose-400',
+          activeBg: 'bg-rose-600',
+          activeText: 'text-white',
+          activeBorder: 'border-rose-500'
+        },
+        indigo: {
+          chip: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30',
+          dot: 'bg-indigo-400',
+          activeBg: 'bg-indigo-600',
+          activeText: 'text-white',
+          activeBorder: 'border-indigo-500'
+        },
+      };
+      return map[color] || map.indigo;
+    }
+
+    // Bind Canvas & Viewer Zoom/Pan Controls
+    function bindViewerControls() {
+      btnZoomIn.addEventListener('click', () => {
+        state.viewer.scale = Math.min(state.viewer.scale + 0.25, 4.0);
+        updateViewerTransform();
+      });
+
+      btnZoomOut.addEventListener('click', () => {
+        state.viewer.scale = Math.max(state.viewer.scale - 0.25, 0.5);
+        updateViewerTransform();
+      });
+
+      btnRotate.addEventListener('click', () => {
+        state.viewer.rotation = (state.viewer.rotation + 90) % 360;
+        updateViewerTransform();
+      });
+
+      btnZoomReset.addEventListener('click', () => {
+        resetViewerTransform();
+      });
+
+      // Mouse drag to pan
+      imageViewport.addEventListener('mousedown', (e) => {
+        if (previewImg.classList.contains('hidden')) return;
+        state.viewer.isDragging = true;
+        state.viewer.startX = e.clientX - state.viewer.posX;
+        state.viewer.startY = e.clientY - state.viewer.posY;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!state.viewer.isDragging) return;
+        state.viewer.posX = e.clientX - state.viewer.startX;
+        state.viewer.posY = e.clientY - state.viewer.startY;
+        updateViewerTransform();
+      });
+
+      window.addEventListener('mouseup', () => {
+        state.viewer.isDragging = false;
+      });
+    }
+
+    function resetViewerTransform() {
+      state.viewer.scale = 1.0;
+      state.viewer.rotation = 0;
+      state.viewer.posX = 0;
+      state.viewer.posY = 0;
+      updateViewerTransform();
+    }
+
+    function updateViewerTransform() {
+      previewImg.style.transform = `translate(${state.viewer.posX}px, ${state.viewer.posY}px) scale(${state.viewer.scale}) rotate(${state.viewer.rotation}deg)`;
+      btnZoomReset.textContent = `${Math.round(state.viewer.scale * 100)}%`;
+    }
+
+    // Bind App Events
+    function bindEvents() {
+      // File upload drag & drop
+      dropzone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleFileUpload(e.target.files[0]);
+        }
+      });
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-indigo-500');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-indigo-500');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-indigo-500');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleFileUpload(e.dataTransfer.files[0]);
+        }
+      });
+
+      // Sample preset load
+      btnLoadSample.addEventListener('click', () => {
+        const val = sampleSelect.value;
+        if (val) loadSampleEdgeCase(val);
+      });
+
+      // Add participant
+      btnAddParticipant.addEventListener('click', addNewParticipant);
+      newParticipantInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addNewParticipant();
+      });
+
+      // Add line item
+      btnAddItem.addEventListener('click', () => {
+        state.receiptData.line_items.push({
+          item_name: 'New Dish',
+          quantity: 1.0,
+          price: 10.00
+        });
+        state.assignments.push({
+          item_index: state.receiptData.line_items.length - 1,
+          assigned_participant_ids: [state.participants[0]?.id || 'p1']
+        });
+        renderAll();
+        triggerProportionalSplit();
+      });
+
+      // Fees inputs
+      [subtotalInput, taxInput, serviceInput, discountInput, grandTotalInput].forEach(inp => {
+        inp.addEventListener('input', () => {
+          state.receiptData.subtotal = parseFloat(subtotalInput.value) || 0;
+          state.receiptData.taxes = parseFloat(taxInput.value) || 0;
+          state.receiptData.service_charge = parseFloat(serviceInput.value) || 0;
+          state.receiptData.discounts = parseFloat(discountInput.value) || 0;
+          state.receiptData.grand_total = parseFloat(grandTotalInput.value) || 0;
+          checkMathDiscrepancy();
+          triggerProportionalSplit();
+        });
+      });
+
+      currencyInput.addEventListener('input', () => {
+        state.receiptData.currency = currencyInput.value || '$';
+        renderAll();
+        triggerProportionalSplit();
+      });
+
+      merchantInput.addEventListener('input', () => {
+        state.receiptData.merchant_name = merchantInput.value;
+      });
+
+      // Fix subtotal 1-click
+      btnFixSubtotal.addEventListener('click', () => {
+        const itemsSum = Number(state.receiptData.line_items.reduce((acc, it) => acc + (it.price || 0), 0).toFixed(2));
+        state.receiptData.subtotal = itemsSum;
+        state.receiptData.grand_total = Number((itemsSum + state.receiptData.taxes + state.receiptData.service_charge - state.receiptData.discounts).toFixed(2));
+        renderAll();
+        triggerProportionalSplit();
+      });
+
+      // Assign all to everyone
+      btnAssignAllEveryone.addEventListener('click', () => {
+        const allIds = state.participants.map(p => p.id);
+        state.assignments.forEach(a => a.assigned_participant_ids = [...allIds]);
+        renderAssignmentMatrix();
+        triggerProportionalSplit();
+      });
+
+      // Clear assignments
+      btnClearAssignments.addEventListener('click', () => {
+        state.assignments.forEach(a => a.assigned_participant_ids = []);
+        renderAssignmentMatrix();
+        triggerProportionalSplit();
+      });
+
+      // Copy summary to clipboard
+      btnCopySummary.addEventListener('click', () => {
+        if (!state.splitResult) return;
+        let text = `🧾 ${state.receiptData.merchant_name} - Proportional Bill Split\n`;
+        text += `Grand Total: ${state.receiptData.currency}${state.splitResult.receipt_grand_total.toFixed(2)}\n\n`;
+        state.splitResult.shares.forEach(s => {
+          text += `👤 ${s.name}: ${state.receiptData.currency}${s.final_total.toFixed(2)} (Food: ${state.receiptData.currency}${s.food_subtotal.toFixed(2)}, Tax/Fees: ${state.receiptData.currency}${s.proportional_fee_share.toFixed(2)})\n`;
+        });
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Copied split summary to clipboard!');
+        });
+      });
+
+      // Export JSON
+      btnExportJson.addEventListener('click', () => {
+        if (!state.splitResult) return;
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state.splitResult, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute('href', dataStr);
+        a.setAttribute('download', `bill_split_${state.receiptData.merchant_name.replace(/\s+/g, '_')}.json`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+
+      // Modals
+      btnOpenSettings.addEventListener('click', () => {
+        customApiKeyInput.value = state.apiKey;
+        settingsModal.classList.remove('hidden');
+      });
+      btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+      btnSaveKey.addEventListener('click', () => {
+        const val = customApiKeyInput.value.trim();
+        state.apiKey = val;
+        localStorage.setItem('smartsplit_gemini_api_key', val);
+        settingsModal.classList.add('hidden');
+        checkBackendHealth();
+      });
+
+      btnClearKey.addEventListener('click', () => {
+        state.apiKey = '';
+        localStorage.removeItem('smartsplit_gemini_api_key');
+        customApiKeyInput.value = '';
+        checkBackendHealth();
+      });
+
+      btnSamplesModal.addEventListener('click', () => samplesModal.classList.remove('hidden'));
+      btnCloseSamples.addEventListener('click', () => samplesModal.classList.add('hidden'));
+    }
+
+    function addNewParticipant() {
+      const name = newParticipantInput.value.trim();
+      if (!name) return;
+      const nextColor = PARTICIPANT_COLORS[state.participants.length % PARTICIPANT_COLORS.length];
+      const newPart = {
+        id: `p_${Date.now()}`,
+        name: name,
+        color: nextColor
+      };
+      state.participants.push(newPart);
+      newParticipantInput.value = '';
+      renderAll();
+      triggerProportionalSplit();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Start on DOM ready
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>

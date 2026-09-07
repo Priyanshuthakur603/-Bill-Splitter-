@@ -1,0 +1,478 @@
+{
+  "1_crumpled_paper": {
+    "id": "1_crumpled_paper",
+    "name": "Crumpled Paper Receipt",
+    "description": "Degraded, folded receipt paper with wrinkles and shadows affecting OCR clarity.",
+    "image_filename": "1_crumpled_paper.png",
+    "ground_truth": {
+      "merchant_name": "The Bistro Garden",
+      "line_items": [
+        {
+          "item_name": "Truffle Fries",
+          "quantity": 1,
+          "price": 14.5
+        },
+        {
+          "item_name": "Steak Frites",
+          "quantity": 2,
+          "price": 56.0
+        },
+        {
+          "item_name": "Sparkling Water",
+          "quantity": 2,
+          "price": 9.0
+        }
+      ],
+      "subtotal": 79.5,
+      "taxes": 7.16,
+      "service_charge": 7.95,
+      "discounts": 0.0,
+      "grand_total": 94.61,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.85,
+        "line_items": 0.76,
+        "subtotal": 0.78,
+        "taxes": 0.74,
+        "grand_total": 0.82
+      }
+    }
+  },
+  "2_angled_shot": {
+    "id": "2_angled_shot",
+    "name": "Angled Perspective Shot",
+    "description": "Camera photo taken at an angle with tilted perspective distortion.",
+    "image_filename": "2_angled_shot.png",
+    "ground_truth": {
+      "merchant_name": "Trattoria Romana",
+      "line_items": [
+        {
+          "item_name": "Bruschetta Trio",
+          "quantity": 1,
+          "price": 12.0
+        },
+        {
+          "item_name": "Pappardelle Ragu",
+          "quantity": 2,
+          "price": 44.0
+        },
+        {
+          "item_name": "Chianti Classico",
+          "quantity": 1,
+          "price": 38.0
+        },
+        {
+          "item_name": "Tiramisu",
+          "quantity": 1,
+          "price": 11.0
+        }
+      ],
+      "subtotal": 105.0,
+      "taxes": 9.45,
+      "service_charge": 10.5,
+      "discounts": 0.0,
+      "grand_total": 124.95,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.82,
+        "line_items": 0.74,
+        "subtotal": 0.79,
+        "taxes": 0.8,
+        "grand_total": 0.84
+      }
+    }
+  },
+  "3_incorrect_printed_math": {
+    "id": "3_incorrect_printed_math",
+    "name": "Incorrect Printed Math (Mismatch)",
+    "description": "Register error where printed items sum to $38.00 but printed subtotal is erroneously printed as $42.00.",
+    "image_filename": "3_incorrect_printed_math.png",
+    "ground_truth": {
+      "merchant_name": "Retro Diner Cafe",
+      "line_items": [
+        {
+          "item_name": "Classic Burger",
+          "quantity": 1,
+          "price": 15.0
+        },
+        {
+          "item_name": "Curly Fries",
+          "quantity": 1,
+          "price": 6.0
+        },
+        {
+          "item_name": "Vanilla Shake",
+          "quantity": 1,
+          "price": 7.0
+        },
+        {
+          "item_name": "Hot Dog",
+          "quantity": 1,
+          "price": 10.0
+        }
+      ],
+      "subtotal": 42.0,
+      "taxes": 3.78,
+      "service_charge": 0.0,
+      "discounts": 0.0,
+      "grand_total": 45.78,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.95,
+        "line_items": 0.92,
+        "subtotal": 0.65,
+        "taxes": 0.9,
+        "grand_total": 0.88
+      }
+    }
+  },
+  "4_heavy_discounts": {
+    "id": "4_heavy_discounts",
+    "name": "Heavy Discounts & Promo Vouchers",
+    "description": "Bill with substantial promotional discount (-$35.00) that must proportionally reduce participant shares.",
+    "image_filename": "4_heavy_discounts.png",
+    "ground_truth": {
+      "merchant_name": "Sake & Robata Grill",
+      "line_items": [
+        {
+          "item_name": "Sashimi Platter",
+          "quantity": 1,
+          "price": 65.0
+        },
+        {
+          "item_name": "Wagyu Skewers",
+          "quantity": 2,
+          "price": 48.0
+        },
+        {
+          "item_name": "Edamame",
+          "quantity": 1,
+          "price": 8.0
+        },
+        {
+          "item_name": "Hot Sake Carafe",
+          "quantity": 2,
+          "price": 24.0
+        }
+      ],
+      "subtotal": 145.0,
+      "taxes": 9.9,
+      "service_charge": 11.0,
+      "discounts": 35.0,
+      "grand_total": 130.9,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.96,
+        "line_items": 0.94,
+        "subtotal": 0.95,
+        "taxes": 0.92,
+        "discounts": 0.94,
+        "grand_total": 0.96
+      }
+    }
+  },
+  "5_zero_tax_service_only": {
+    "id": "5_zero_tax_service_only",
+    "name": "Zero Tax (Service Charge Only)",
+    "description": "Duty-free / tax-exempt transaction containing 0% sales tax but a 12% mandatory service charge.",
+    "image_filename": "5_zero_tax_service_only.png",
+    "ground_truth": {
+      "merchant_name": "Skyline Lounge (Tax-Free)",
+      "line_items": [
+        {
+          "item_name": "Cocktail Old Fashioned",
+          "quantity": 2,
+          "price": 36.0
+        },
+        {
+          "item_name": "Artisan Cheese Plate",
+          "quantity": 1,
+          "price": 24.0
+        },
+        {
+          "item_name": "Sparkling Wine",
+          "quantity": 1,
+          "price": 40.0
+        }
+      ],
+      "subtotal": 100.0,
+      "taxes": 0.0,
+      "service_charge": 12.0,
+      "discounts": 0.0,
+      "grand_total": 112.0,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.95,
+        "line_items": 0.95,
+        "subtotal": 0.95,
+        "taxes": 0.98,
+        "service_charge": 0.94,
+        "grand_total": 0.97
+      }
+    }
+  },
+  "6_high_tax_multiple_rates": {
+    "id": "6_high_tax_multiple_rates",
+    "name": "High Tax & Compound Rates",
+    "description": "Receipt with composite tax breakdown (State 6.25% + Local Meal Tax 2.75% = 9.0% total).",
+    "image_filename": "6_high_tax_multiple_rates.png",
+    "ground_truth": {
+      "merchant_name": "Boston Seafood Pier",
+      "line_items": [
+        {
+          "item_name": "Lobster Roll Combo",
+          "quantity": 2,
+          "price": 68.0
+        },
+        {
+          "item_name": "Clam Chowder Bowl",
+          "quantity": 2,
+          "price": 22.0
+        },
+        {
+          "item_name": "Local Craft IPA",
+          "quantity": 3,
+          "price": 27.0
+        }
+      ],
+      "subtotal": 117.0,
+      "taxes": 10.53,
+      "service_charge": 5.0,
+      "discounts": 0.0,
+      "grand_total": 132.53,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.94,
+        "line_items": 0.92,
+        "subtotal": 0.93,
+        "taxes": 0.91,
+        "grand_total": 0.95
+      }
+    }
+  },
+  "7_multi_person_penny_rounding": {
+    "id": "7_multi_person_penny_rounding",
+    "name": "Multi-Person Penny Rounding (Hare-Niemeyer)",
+    "description": "$10.00 split 3 ways yields $3.3333. Hare-Niemeyer cent balancing allocates the extra 1 cent without loss.",
+    "image_filename": "7_multi_person_penny_rounding.png",
+    "ground_truth": {
+      "merchant_name": "Three Friends Pizzeria",
+      "line_items": [
+        {
+          "item_name": "Margherita Pizza",
+          "quantity": 1,
+          "price": 10.0
+        },
+        {
+          "item_name": "Garlic Bread",
+          "quantity": 1,
+          "price": 5.0
+        },
+        {
+          "item_name": "Soda Can",
+          "quantity": 3,
+          "price": 6.0
+        }
+      ],
+      "subtotal": 21.0,
+      "taxes": 1.89,
+      "service_charge": 0.0,
+      "discounts": 0.0,
+      "grand_total": 22.89,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.97,
+        "line_items": 0.95,
+        "subtotal": 0.96,
+        "taxes": 0.94,
+        "grand_total": 0.98
+      }
+    }
+  },
+  "8_foreign_currency_symbols": {
+    "id": "8_foreign_currency_symbols",
+    "name": "Foreign Currency (EUR / INR)",
+    "description": "International receipt formatted in Euros (\u20ac) with European decimal formatting.",
+    "image_filename": "8_foreign_currency_symbols.png",
+    "ground_truth": {
+      "merchant_name": "Brasserie Parisienne",
+      "line_items": [
+        {
+          "item_name": "Croissant & Cafe",
+          "quantity": 2,
+          "price": 8.5
+        },
+        {
+          "item_name": "Quiche Lorraine",
+          "quantity": 2,
+          "price": 24.0
+        },
+        {
+          "item_name": "Bordeaux Rouge",
+          "quantity": 1,
+          "price": 32.0
+        }
+      ],
+      "subtotal": 64.5,
+      "taxes": 6.45,
+      "service_charge": 0.0,
+      "discounts": 0.0,
+      "grand_total": 70.95,
+      "currency": "\u20ac",
+      "field_confidence": {
+        "merchant_name": 0.92,
+        "line_items": 0.9,
+        "subtotal": 0.91,
+        "taxes": 0.89,
+        "grand_total": 0.94
+      }
+    }
+  },
+  "9_handwritten_additions": {
+    "id": "9_handwritten_additions",
+    "name": "Handwritten Tip Addition",
+    "description": "Receipt with printed total of $55.00 and customer handwritten pen tip of $10.00 making grand total $65.00.",
+    "image_filename": "9_handwritten_additions.png",
+    "ground_truth": {
+      "merchant_name": "Oak & Iron Tavern",
+      "line_items": [
+        {
+          "item_name": "Smoked Ribs",
+          "quantity": 1,
+          "price": 28.0
+        },
+        {
+          "item_name": "Mac & Cheese",
+          "quantity": 1,
+          "price": 12.0
+        },
+        {
+          "item_name": "Draft Cider",
+          "quantity": 2,
+          "price": 14.0
+        }
+      ],
+      "subtotal": 54.0,
+      "taxes": 4.86,
+      "service_charge": 10.0,
+      "discounts": 0.0,
+      "grand_total": 68.86,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.93,
+        "line_items": 0.91,
+        "subtotal": 0.92,
+        "taxes": 0.88,
+        "service_charge": 0.72,
+        "grand_total": 0.79
+      }
+    }
+  },
+  "10_faded_thermal_ink": {
+    "id": "10_faded_thermal_ink",
+    "name": "Faded Thermal Paper Ink",
+    "description": "Low-contrast faded cash register paper testing OCR robustness under poor legibility.",
+    "image_filename": "10_faded_thermal_ink.png",
+    "ground_truth": {
+      "merchant_name": "Corner Grocery & Deli",
+      "line_items": [
+        {
+          "item_name": "Turkey Club Wrap",
+          "quantity": 1,
+          "price": 9.75
+        },
+        {
+          "item_name": "Cold Brew Coffee",
+          "quantity": 1,
+          "price": 4.5
+        },
+        {
+          "item_name": "Kettle Chips",
+          "quantity": 1,
+          "price": 2.25
+        }
+      ],
+      "subtotal": 16.5,
+      "taxes": 1.15,
+      "service_charge": 0.0,
+      "discounts": 0.0,
+      "grand_total": 17.65,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.72,
+        "line_items": 0.68,
+        "subtotal": 0.71,
+        "taxes": 0.65,
+        "grand_total": 0.74
+      }
+    }
+  },
+  "11_single_item_expensive": {
+    "id": "11_single_item_expensive",
+    "name": "Asymmetric Item Pricing (Fairness Test)",
+    "description": "One party orders an expensive $120 vintage wine, while others have $10 tapas. Proves proportional tax fairness.",
+    "image_filename": "11_single_item_expensive.png",
+    "ground_truth": {
+      "merchant_name": "Grand Reserve Steakhouse",
+      "line_items": [
+        {
+          "item_name": "Dom Perignon 2012",
+          "quantity": 1,
+          "price": 120.0
+        },
+        {
+          "item_name": "Truffle Fries",
+          "quantity": 1,
+          "price": 12.0
+        },
+        {
+          "item_name": "Sliders Trio",
+          "quantity": 1,
+          "price": 14.0
+        }
+      ],
+      "subtotal": 146.0,
+      "taxes": 14.6,
+      "service_charge": 14.6,
+      "discounts": 0.0,
+      "grand_total": 175.2,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.96,
+        "line_items": 0.94,
+        "subtotal": 0.95,
+        "taxes": 0.95,
+        "grand_total": 0.97
+      }
+    }
+  },
+  "12_zero_food_subtotal": {
+    "id": "12_zero_food_subtotal",
+    "name": "Zero Food Subtotal (Cover Fee Only)",
+    "description": "Venue reservation or entry cover fee with $0 raw food consumed. Tests fallback equal fee distribution.",
+    "image_filename": "12_zero_food_subtotal.png",
+    "ground_truth": {
+      "merchant_name": "Velvet Room Lounge",
+      "line_items": [
+        {
+          "item_name": "VIP Table Reservation",
+          "quantity": 1,
+          "price": 0.0
+        }
+      ],
+      "subtotal": 0.0,
+      "taxes": 5.0,
+      "service_charge": 50.0,
+      "discounts": 0.0,
+      "grand_total": 55.0,
+      "currency": "$",
+      "field_confidence": {
+        "merchant_name": 0.91,
+        "line_items": 0.88,
+        "subtotal": 0.9,
+        "taxes": 0.89,
+        "grand_total": 0.92
+      }
+    }
+  }
+}

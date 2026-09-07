@@ -1,0 +1,18 @@
+# Secrets & Environment Variables
+.env
+
+# Python Caches & Generated Files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+CACHEDIR.TAG
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# IDE & System Settings
+.vscode/
+.idea/
+.DS_Store
