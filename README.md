@@ -1,4 +1,4 @@
-# SmartSplit AI: Split the Bill From a Photograph
+# SmartSplit: Split the Bill From a Photograph
 > **Production-ready AI web application that parses receipt photos, extracts line items & taxes using Google Gemini Vision, provides human-in-the-loop verification, and calculates mathematically sound proportional bill splits with penny-perfect reconciliation.**
 
 ---
